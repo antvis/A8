@@ -7,8 +7,8 @@ A library for audio visualization using the following rendering techniques:
 
 We provide the following effects now:
 
-<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" /><img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*PcO9Qq58pQYAAAAAAAAAAAAADvR5AQ/original" alt="gpu stardust" height="200" />
-<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*HIFQTan8bFsAAAAAAAAAAAAADvR5AQ/original" alt="gpu blackhole" height="200" />
+<a href="https://a8.antv.vision/?name=GPUSine"><img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" /></a><a href="https://a8.antv.vision/?name=GPUStardust"><img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*PcO9Qq58pQYAAAAAAAAAAAAADvR5AQ/original" alt="gpu stardust" height="200" /></a><a href="https://a8.antv.vision/?name=GPUBlackHole">
+<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*HIFQTan8bFsAAAAAAAAAAAAADvR5AQ/original" alt="gpu blackhole" height="200" /></a>
 
 ## Getting Started
 
@@ -107,9 +107,63 @@ const shaderCompilerPath = new URL(
 const effect = new Stardust(shaderCompilerPath, {});
 ```
 
+Let me briefly describe the implementation. The whole process inside compute shaders can be divided into four stages:
+
+- Simulate particles
+- Clear
+- Rasterize
+- Output to storage buffer
+- Blit to screen
+
+The particle structure is really simple, it consists of 2 properties: `position` and `velocity`. We will load/store particles from/to storage textures later.
+
+```wgsl
+struct Particle {
+  position: float4,
+  velocity: float4,
+}
+
+fn LoadParticle(pix: int2) -> Particle {
+  var p: Particle;
+  p.position = textureLoad(pass_in, pix, 0, 0);
+  p.velocity = textureLoad(pass_in, pix, 1, 0);
+  return p;
+}
+
+fn SaveParticle(pix: int2, p: Particle) {
+  textureStore(pass_out, pix, 0, p.position);
+  textureStore(pass_out, pix, 1, p.velocity);
+}
+```
+
+At the first frame, we assign the initial `position` & `velocity` for each particle.
+
+```wgsl
+@compute @workgroup_size(16, 16)
+fn SimulateParticles(@builtin(global_invocation_id) id: uint3) {
+  if (time.frame == 0u) {
+    let rng = rand4();
+
+    // Normalize from [0, 1] to [-1, 1].
+    p.position = float4(2.0 * rng.xyz - 1.0, 0.0);
+    p.velocity = float4(0.0, 0.0, 0.0, 0.0);
+  }
+}
+```
+
+And in each of the next frames, `position` will be updated with `velocity`.
+
+```wgsl
+let dt = custom.Speed * custom.TimeStep;
+p.velocity += (ForceField(p.position.xyz, t) - custom.VelocityDecay * p.velocity) * dt;
+p.position += p.velocity * dt;
+```
+
 #### GPU Sine
 
 <img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" />
+
+[Online DEMO](https://a8.antv.vision/?name=GPUSine)
 
 - radius `number`
 - sinea `number`
@@ -122,6 +176,8 @@ const effect = new Stardust(shaderCompilerPath, {});
 #### GPU Stardust
 
 <img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*PcO9Qq58pQYAAAAAAAAAAAAADvR5AQ/original" alt="gpu stardust" height="200" />
+
+[Online DEMO](https://a8.antv.vision/?name=GPUStardust)
 
 - radius `number`
 - timeStep `number`
@@ -140,6 +196,8 @@ const effect = new Stardust(shaderCompilerPath, {});
 https://en.wikipedia.org/wiki/Kerr%E2%80%93Newman_metric
 
 <img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*HIFQTan8bFsAAAAAAAAAAAAADvR5AQ/original" alt="gpu blackhole" height="200" />
+
+[Online DEMO](https://a8.antv.vision/?name=GPUBlackHole)
 
 - radius `number`
 - timeStep `number`
