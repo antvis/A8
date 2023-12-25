@@ -8,8 +8,7 @@ A library for audio visualization using the following rendering techniques:
 We provide the following effects now:
 
 <img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/
-A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" width="200">
-<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*PcO9Qq58pQYAAAAAAAAAAAAADvR5AQ/original" alt="gpu stardust" width="200">
+A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" /><img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*PcO9Qq58pQYAAAAAAAAAAAAADvR5AQ/original" alt="gpu stardust" height="200" />
 
 ## Getting Started
 
@@ -88,6 +87,9 @@ We provide the following effect now.
 
 ### GPU Sine
 
+<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/
+A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" />
+
 - radius `number`
 - sinea `number`
 - sineb `number`
@@ -97,3 +99,17 @@ We provide the following effect now.
 - mode `number`
 
 ### GPU Stardust
+
+<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*PcO9Qq58pQYAAAAAAAAAAAAADvR5AQ/original" alt="gpu stardust" height="200" />
+
+- radius `number`
+- timeStep `number`
+- samples `number`
+- blurRadius `number`
+- velocityDecay `number`
+- speed `number`
+- blurExponentA `number`
+- blurExponentB `number`
+- animatedNoise `number`
+- accumulation `number`
+- exposure `number`
