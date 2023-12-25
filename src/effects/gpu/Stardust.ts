@@ -97,10 +97,8 @@ struct Custom {
 #import prelude::{screen, time, pass_in, pass_out};
 #import math::{PI, TWO_PI, state, rand4, nrand4, disk};
 #import camera::{Camera, GetCameraMatrix, Project, camera};
-#import particle::{Particle, LoadParticle, SaveParticle};
+#import particle::{Particle, LoadParticle, SaveParticle, RasterizePoint, atomic_storage};
 #import custom::{Custom, custom};
-
-@group(2) @binding(0) var<storage, read_write> atomic_storage : array<atomic<i32>>;
 
 const MaxSamples = 256.0;
 const FOV = 0.8;
@@ -177,35 +175,6 @@ fn Clear(@builtin(global_invocation_id) id: uint3) {
     atomicStore(&atomic_storage[idx0*4+1], 0);
     atomicStore(&atomic_storage[idx0*4+2], 0);
     atomicStore(&atomic_storage[idx0*4+3], 0);
-}
-
-fn AdditiveBlend(color: float3, depth: float, index: int)
-{
-    let scaledColor = 256.0 * color/depth;
-
-    atomicAdd(&atomic_storage[index*4+0], int(scaledColor.x));
-    atomicAdd(&atomic_storage[index*4+1], int(scaledColor.y));
-    atomicAdd(&atomic_storage[index*4+2], int(scaledColor.z));
-}
-
-
-fn RasterizePoint(pos: float3, color: float3)
-{
-    let screen_size = int2(camera.size);
-    let projectedPos = Project(camera, pos);
-    
-    let screenCoord = int2(projectedPos.xy);
-    
-    //outside of our view
-    if(screenCoord.x < 0 || screenCoord.x >= screen_size.x || 
-        screenCoord.y < 0 || screenCoord.y >= screen_size.y || projectedPos.z < 0.0)
-    {
-        return;
-    }
-
-    let idx = screenCoord.x + screen_size.x * screenCoord.y;
-    
-    AdditiveBlend(color, projectedPos.z, idx);
 }
 
 @compute @workgroup_size(16, 16)

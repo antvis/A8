@@ -226,114 +226,145 @@ export function createBlitPipelineAndBindings(device: Device, screen: Texture) {
 }
 
 export const math = /* wgsl */ `
-  #define_import_path math
-  
-  const PI = 3.14159265;
-  const TWO_PI = 6.28318530718;
-  
-  var<private> state : uint4;
-  
-  fn pcg4d(a: uint4) -> uint4
-  {
-    var v = a * 1664525u + 1013904223u;
-      v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
-      v = v ^  ( v >> uint4(16u) );
-      v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
-      return v;
-  }
-  
-  fn rand4() -> float4
-  { 
-      state = pcg4d(state);
-      return float4(state)/float(0xffffffffu); 
-  }
-  
-  fn nrand4(sigma: float, mean: float4) -> float4
-  {
-      let Z = rand4();
-      return mean + sigma * sqrt(-2.0 * log(Z.xxyy)) * 
-              float4(cos(TWO_PI * Z.z),sin(TWO_PI * Z.z),cos(TWO_PI * Z.w),sin(TWO_PI * Z.w));
-  }
-  
-  fn disk(r: float2) -> float2
-  {
-      return vec2(sin(TWO_PI*r.x), cos(TWO_PI*r.x))*(r.y);
-  }
-  
-  fn sqr(x: float) -> float
-  {
-      return x*x;
-  }
-  
-  fn diag(a: float4) -> float4x4
-  {
-      return float4x4(
-          a.x,0.0,0.0,0.0,
-          0.0,a.y,0.0,0.0,
-          0.0,0.0,a.z,0.0,
-          0.0,0.0,0.0,a.w
-      );
-  }
-  
-  fn rand4s(seed: uint4) -> float4
-  { 
-      return float4(pcg4d(seed))/float(0xffffffffu); 
-  }
+#define_import_path math
+
+const PI = 3.14159265;
+const TWO_PI = 6.28318530718;
+
+var<private> state : uint4;
+
+fn pcg4d(a: uint4) -> uint4
+{
+  var v = a * 1664525u + 1013904223u;
+    v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
+    v = v ^  ( v >> uint4(16u) );
+    v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
+    return v;
+}
+
+fn rand4() -> float4
+{ 
+    state = pcg4d(state);
+    return float4(state)/float(0xffffffffu); 
+}
+
+fn nrand4(sigma: float, mean: float4) -> float4
+{
+    let Z = rand4();
+    return mean + sigma * sqrt(-2.0 * log(Z.xxyy)) * 
+            float4(cos(TWO_PI * Z.z),sin(TWO_PI * Z.z),cos(TWO_PI * Z.w),sin(TWO_PI * Z.w));
+}
+
+fn disk(r: float2) -> float2
+{
+    return vec2(sin(TWO_PI*r.x), cos(TWO_PI*r.x))*(r.y);
+}
+
+fn sqr(x: float) -> float
+{
+    return x*x;
+}
+
+fn diag(a: float4) -> float4x4
+{
+    return float4x4(
+        a.x,0.0,0.0,0.0,
+        0.0,a.y,0.0,0.0,
+        0.0,0.0,a.z,0.0,
+        0.0,0.0,0.0,a.w
+    );
+}
+
+fn rand4s(seed: uint4) -> float4
+{ 
+    return float4(pcg4d(seed))/float(0xffffffffu); 
+}
   `;
 
 export const camera = /* wgsl */ `
-  #define_import_path camera
-  
-  struct Camera 
-  {
-    pos: float3,
-    cam: float3x3,
-    fov: float,
-    size: float2
-  }
-  
-  var<private> camera : Camera;
-  
-  fn GetCameraMatrix(ang: float2) -> float3x3
-  {
-      let x_dir = float3(cos(ang.x)*sin(ang.y), cos(ang.y), sin(ang.x)*sin(ang.y));
-      let y_dir = normalize(cross(x_dir, float3(0.0,1.0,0.0)));
-      let z_dir = normalize(cross(y_dir, x_dir));
-      return float3x3(-x_dir, y_dir, z_dir);
-  }
-  
-  //project to clip space
-  fn Project(cam: Camera, p: float3) -> float3
-  {
-      let td = distance(cam.pos, p);
-      let dir = (p - cam.pos)/td;
-      let screen = dir*cam.cam;
-      return float3(screen.yz*cam.size.y/(cam.fov*screen.x) + 0.5*cam.size,screen.x*td);
-  }
+#define_import_path camera
+
+struct Camera 
+{
+  pos: float3,
+  cam: float3x3,
+  fov: float,
+  size: float2
+}
+
+var<private> camera : Camera;
+
+fn GetCameraMatrix(ang: float2) -> float3x3
+{
+    let x_dir = float3(cos(ang.x)*sin(ang.y), cos(ang.y), sin(ang.x)*sin(ang.y));
+    let y_dir = normalize(cross(x_dir, float3(0.0,1.0,0.0)));
+    let z_dir = normalize(cross(y_dir, x_dir));
+    return float3x3(-x_dir, y_dir, z_dir);
+}
+
+//project to clip space
+fn Project(cam: Camera, p: float3) -> float3
+{
+    let td = distance(cam.pos, p);
+    let dir = (p - cam.pos)/td;
+    let screen = dir*cam.cam;
+    return float3(screen.yz*cam.size.y/(cam.fov*screen.x) + 0.5*cam.size,screen.x*td);
+}
     `;
 
 export const particle = /* wgsl */ `
-  #define_import_path particle
+#define_import_path particle
+
+#import prelude::{pass_in, pass_out};
+#import camera::{Project, camera};
+
+struct Particle
+{
+    position: float4,
+    velocity: float4,
+}
+
+@group(2) @binding(0) var<storage, read_write> atomic_storage : array<atomic<i32>>;
+
+fn AdditiveBlend(color: float3, depth: float, index: int)
+{
+    let scaledColor = 256.0 * color/depth;
+
+    atomicAdd(&atomic_storage[index*4+0], int(scaledColor.x));
+    atomicAdd(&atomic_storage[index*4+1], int(scaledColor.y));
+    atomicAdd(&atomic_storage[index*4+2], int(scaledColor.z));
+}
+
+fn RasterizePoint(pos: float3, color: float3)
+{
+    let screen_size = int2(camera.size);
+    let projectedPos = Project(camera, pos);
+    
+    let screenCoord = int2(projectedPos.xy);
+    
+    //outside of our view
+    if(screenCoord.x < 0 || screenCoord.x >= screen_size.x || 
+        screenCoord.y < 0 || screenCoord.y >= screen_size.y || projectedPos.z < 0.0)
+    {
+        return;
+    }
+
+    let idx = screenCoord.x + screen_size.x * screenCoord.y;
+    
+    AdditiveBlend(color, projectedPos.z, idx);
+}
   
-  #import prelude::{pass_in, pass_out};
-  
-  struct Particle
-  {
-      position: float4,
-      velocity: float4,
-  }
-  
-  fn LoadParticle(pix: int2) -> Particle
-  {
-      var p: Particle;
-      p.position = textureLoad(pass_in, pix, 0, 0); 
-      p.velocity = textureLoad(pass_in, pix, 1, 0);
-      return p;
-  }
-  
-  fn SaveParticle(pix: int2, p: Particle) 
-  {
-      textureStore(pass_out, pix, 0, p.position); 
-      textureStore(pass_out, pix, 1, p.velocity); 
-  }
+fn LoadParticle(pix: int2) -> Particle
+{
+    var p: Particle;
+    p.position = textureLoad(pass_in, pix, 0, 0); 
+    p.velocity = textureLoad(pass_in, pix, 1, 0);
+    return p;
+}
+
+fn SaveParticle(pix: int2, p: Particle) 
+{
+    textureStore(pass_out, pix, 0, p.position); 
+    textureStore(pass_out, pix, 1, p.velocity); 
+}
   `;

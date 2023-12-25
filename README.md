@@ -3,22 +3,22 @@
 A library for audio visualization using the following rendering techniques:
 
 - Canvas2D with [@antv/g-canvas](https://g.antv.antgroup.com/api/renderer/canvas).
-- WebGPU WGSL compute shader with [@antv/g-device-api](https://github.com/antvis/g-device-api). https://observablehq.com/@antv/compute-toys
+- WebGPU WGSL compute shader with [@antv/g-device-api](https://github.com/antvis/g-device-api). For more information: https://observablehq.com/@antv/compute-toys
 
 We provide the following effects now:
 
-<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/
-A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" /><img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*PcO9Qq58pQYAAAAAAAAAAAAADvR5AQ/original" alt="gpu stardust" height="200" />
+<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" /><img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*PcO9Qq58pQYAAAAAAAAAAAAADvR5AQ/original" alt="gpu stardust" height="200" />
+<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*HIFQTan8bFsAAAAAAAAAAAAADvR5AQ/original" alt="gpu blackhole" height="200" />
 
 ## Getting Started
 
-Install from NPM:
+Install from NPM.
 
 ```bash
 npm install @antv/a8
 ```
 
-Create
+Create a audio, set effect and start playing.
 
 ```ts
 import { Audio, Sine } from '@antv/a8';
@@ -69,6 +69,8 @@ audio.style({ blur: 1 });
 
 ### play()
 
+Start visualizing the audio.
+
 ```ts
 audio.play();
 ```
@@ -87,8 +89,7 @@ We provide the following effect now.
 
 ### GPU Sine
 
-<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/
-A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" />
+<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" />
 
 - radius `number`
 - sinea `number`
@@ -113,3 +114,27 @@ A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" />
 - animatedNoise `number`
 - accumulation `number`
 - exposure `number`
+
+### GPU BlackHole
+
+https://en.wikipedia.org/wiki/Kerr%E2%80%93Newman_metric
+
+<img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*HIFQTan8bFsAAAAAAAAAAAAADvR5AQ/original" alt="gpu blackhole" height="200" />
+
+- radius `number`
+- timeStep `number`
+- samples `number`
+- animatedNoise `number`
+- accumulation `number`
+- exposure `number`
+- blurExponentA `number`
+- blurExponentB `number`
+- blurRadius `number`
+- kerrA `number`
+- kerrQ `number`
+- initSpeed `number`
+- initThick `number`
+- steps `number`
+- focalPlane `number`
+- motionBlur `number`
+- gamma `number`
