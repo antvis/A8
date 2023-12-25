@@ -97,7 +97,7 @@ We provide the following effect now.
 - Stardust
 - Black Hole
 
-For more informations, see https://observablehq.com/@antv/compute-toys#cell-712
+When creating GPU particle effects, we should use a WASM to compile shader chunks. For more informations, see https://observablehq.com/@antv/compute-toys#cell-712
 
 ```ts
 const shaderCompilerPath = new URL(

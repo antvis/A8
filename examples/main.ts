@@ -23,10 +23,19 @@ const initialValue = new URL(location as any).searchParams.get(
 if (demos[initialValue]) select.value = initialValue;
 
 const $container = document.getElementById('container')!;
-const $audio = document.getElementById('audio')! as HTMLAudioElement;
 const $file = document.getElementById('file')!;
+const $block = document.getElementById('audio-block');
+let $audio: HTMLAudioElement;
 
 const handleFileChanged = (e) => {
+  if ($audio) {
+    $audio?.remove();
+  }
+
+  $audio = document.createElement('audio');
+  $block?.appendChild($audio);
+  $audio.id = 'audio';
+  $audio.controls = true;
   const files = e.target.files;
   $audio.src = URL.createObjectURL(files[0]);
   $audio.load();
@@ -88,6 +97,7 @@ window.addEventListener('resize', () => {
 });
 
 async function render() {
+  if (!$audio) return;
   if (audio) {
     audio.destroy();
   }
