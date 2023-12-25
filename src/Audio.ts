@@ -10,6 +10,7 @@ export class Audio {
   private analyser: AnalyserNode;
   private dataArray: Uint8Array;
   private timer: number;
+  private mouse = { pos: { x: 0, y: 0 }, click: 0 };
   private ready: Promise<void>;
 
   onframe: () => void = () => {};
@@ -21,6 +22,7 @@ export class Audio {
     if (options.effect) {
       this.initEffect();
     }
+    this.initMouseListener();
   }
 
   private initAnalyser() {
@@ -40,6 +42,23 @@ export class Audio {
   private initEffect() {
     const { canvas, effect } = this.options;
     this.ready = effect.init(canvas);
+  }
+
+  private initMouseListener() {
+    const { canvas: $canvas } = this.options;
+    const mouse = this.mouse;
+    $canvas.addEventListener('mousemove', (e) => {
+      if (mouse.click) {
+        mouse.pos.x = e.offsetX;
+        mouse.pos.y = e.offsetY;
+      }
+    });
+    $canvas.addEventListener('mousedown', (e) => {
+      mouse.click = 1;
+    });
+    $canvas.addEventListener('mouseup', (e) => {
+      mouse.click = 0;
+    });
   }
 
   data($audio: HTMLMediaElement) {
@@ -65,7 +84,12 @@ export class Audio {
     let frame = 0;
     const tick = (elapsed: number) => {
       this.analyser.getByteFrequencyData(this.dataArray);
-      this.options.effect.frame(frame, elapsed / 1000, this.dataArray);
+      this.options.effect.frame(
+        frame,
+        elapsed / 1000,
+        this.mouse,
+        this.dataArray,
+      );
 
       this.onframe();
       frame++;

@@ -106,19 +106,19 @@ export class BlackHole extends GPUParticleEffect {
     Gamma: f32
   }
   
-  @group(0) @binding(1) var<uniform> custom: Custom;
+  @group(0) @binding(2) var<uniform> custom: Custom;
     `;
     registerShaderModule(device, custom);
     registerShaderModule(device, particle);
 
     const computeWgsl = /* wgsl */ `
-  #import prelude::{screen, time, pass_in, pass_out};
-  #import math::{PI, TWO_PI, state, rand4, nrand4, sqr, diag, disk};
-  #import camera::{Camera, GetCameraMatrix, Project, camera};
-  #import particle::{Particle, LoadParticle, SaveParticle, RasterizePoint, atomic_storage};
-  #import custom::{Custom, custom};
-  
-  const MaxSamples = 8.0;
+#import prelude::{screen, time, mouse, pass_in, pass_out};
+#import math::{PI, TWO_PI, state, rand4, nrand4, sqr, diag, disk};
+#import camera::{Camera, GetCameraMatrix, Project, camera};
+#import particle::{Particle, LoadParticle, SaveParticle, RasterizePoint, atomic_storage};
+#import custom::{Custom, custom};
+
+const MaxSamples = 8.0;
 const FOV = 0.8;
 
 //sqrt of particle count
@@ -282,10 +282,10 @@ fn SimulateParticles(@builtin(global_invocation_id) id: uint3)
     
     var ray = ParticleToGeodesic(p);
 
-    // if(mouse.click == 1) 
-    // {
-    //    // return;
-    // }
+    if(mouse.click == 1) 
+    {
+       return;
+    }
    
     for(var i = 0; i < int(custom.Steps*16.0 + 1.0); i++)
     {
@@ -317,8 +317,7 @@ fn Rasterize(@builtin(global_invocation_id) id: uint3) {
     let screen_size = int2(textureDimensions(screen));
     let screen_size_f = float2(screen_size);
     
-    let ang = float2(-TWO_PI, PI)/screen_size_f + 1e-4;
-    // let ang = float2(mouse.pos.xy)*float2(-TWO_PI, PI)/screen_size_f + 1e-4;
+    let ang = float2(mouse.pos.xy)*float2(-TWO_PI, PI)/screen_size_f + 1e-4;
     
     SetCamera(ang, FOV);
 
@@ -328,10 +327,10 @@ fn Rasterize(@builtin(global_invocation_id) id: uint3) {
     let rng = rand4();
     bokehRad = pow(rng.x, custom.BlurExponentA);
 
-    // if(mouse.click == 1 && custom.AnimatedNoise > 0.5)
-    // {
-    //     state.w = time.frame;
-    // }
+    if(mouse.click == 1 && custom.AnimatedNoise > 0.5)
+    {
+        state.w = time.frame;
+    }
 
     var pix = int2(id.xy);
 
@@ -392,10 +391,10 @@ fn main_image(@builtin(global_invocation_id) id: uint3)
 
     let oldColor = textureLoad(pass_in, int2(id.xy), 2, 0);
 
-    // if(mouse.click == 1 && custom.AnimatedNoise > 0.5)
-    // {
-    //     color += oldColor * custom.Accumulation;
-    // }
+    if(mouse.click == 1 && custom.AnimatedNoise > 0.5)
+    {
+        color += oldColor * custom.Accumulation;
+    }
 
     // Output to buffer
     textureStore(pass_out, int2(id.xy), 2, color);
@@ -485,7 +484,10 @@ fn main_image(@builtin(global_invocation_id) id: uint3)
       pipeline: simulateParticlesPipeline,
       uniformBufferBindings: [
         {
-          buffer: this.uniformBuffer,
+          buffer: this.timeBuffer,
+        },
+        {
+          buffer: this.mouseBuffer,
         },
         {
           buffer: customUniformBuffer,
@@ -524,7 +526,12 @@ fn main_image(@builtin(global_invocation_id) id: uint3)
       pipeline: rasterizePipeline,
       uniformBufferBindings: [
         {
-          binding: 1,
+          buffer: this.timeBuffer,
+        },
+        {
+          buffer: this.mouseBuffer,
+        },
+        {
           buffer: customUniformBuffer,
         },
       ],
@@ -553,6 +560,10 @@ fn main_image(@builtin(global_invocation_id) id: uint3)
       uniformBufferBindings: [
         {
           binding: 1,
+          buffer: this.mouseBuffer,
+        },
+        {
+          binding: 2,
           buffer: customUniformBuffer,
         },
       ],

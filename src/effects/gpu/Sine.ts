@@ -61,12 +61,12 @@ struct Custom {
   Samples: f32,
   Mode: f32
 }
-@group(0) @binding(1) var<uniform> custom: Custom;
+@group(0) @binding(2) var<uniform> custom: Custom;
   `;
     registerShaderModule(device, custom);
 
     const computeWgsl = /* wgsl */ `
-#import prelude::{screen, time};
+#import prelude::{screen, time, mouse};
 #import math::{PI, TWO_PI, nrand4, state};
 #import camera::{Camera, camera, GetCameraMatrix, Project};
 #import custom::{custom};
@@ -172,8 +172,7 @@ struct Custom {
       let screen_size = int2(textureDimensions(screen));
       let screen_size_f = float2(screen_size);
 
-      // let ang = float2(mouse.pos.xy)*float2(-TWO_PI, PI)/screen_size_f + float2(0.4, 0.4);
-      let ang = float2(0.0, 0.0)*float2(-TWO_PI, PI)/screen_size_f + float2(0.4, 0.4);
+      let ang = float2(mouse.pos.xy)*float2(-TWO_PI, PI)/screen_size_f + float2(0.4, 0.4);
 
       SetCamera(ang, FOV);
 
@@ -310,10 +309,14 @@ struct Custom {
       uniformBufferBindings: [
         {
           binding: 0,
-          buffer: this.uniformBuffer,
+          buffer: this.timeBuffer,
         },
         {
           binding: 1,
+          buffer: this.mouseBuffer,
+        },
+        {
+          binding: 2,
           buffer: customUniformBuffer,
         },
       ],
@@ -334,7 +337,7 @@ struct Custom {
       pipeline: mainImagePipeline,
       uniformBufferBindings: [
         {
-          binding: 1,
+          binding: 2,
           buffer: customUniformBuffer,
         },
       ],

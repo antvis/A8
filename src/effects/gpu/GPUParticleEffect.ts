@@ -31,7 +31,8 @@ export class GPUParticleEffect implements Effect {
   protected device: Device;
   protected swapChain: SwapChain;
   protected renderTarget: RenderTarget;
-  protected uniformBuffer: Buffer;
+  protected timeBuffer: Buffer;
+  protected mouseBuffer: Buffer;
   protected screen: Texture;
   private blitPipeline: RenderPipeline;
   private blitBindings: Bindings;
@@ -82,16 +83,22 @@ export class GPUParticleEffect implements Effect {
       height: $canvas.height,
     });
 
-    const uniformBuffer = device.createBuffer({
+    const timeBuffer = device.createBuffer({
       viewOrSize: 2 * Float32Array.BYTES_PER_ELEMENT,
       usage: BufferUsage.UNIFORM,
     });
-    uniformBuffer.setSubData(
+    timeBuffer.setSubData(0, new Uint8Array(new Float32Array([0, 0]).buffer));
+    const mouseBuffer = device.createBuffer({
+      viewOrSize: 4 * Float32Array.BYTES_PER_ELEMENT,
+      usage: BufferUsage.UNIFORM,
+    });
+    mouseBuffer.setSubData(
       0,
-      new Uint8Array(new Float32Array([0, 0]).buffer),
+      new Uint8Array(new Float32Array([0, 0, 0]).buffer),
     );
 
-    this.uniformBuffer = uniformBuffer;
+    this.timeBuffer = timeBuffer;
+    this.mouseBuffer = mouseBuffer;
     this.blitPipeline = blitPipeline;
     this.blitBindings = blitBindings;
     this.renderTarget = renderTarget;
@@ -110,11 +117,12 @@ export class GPUParticleEffect implements Effect {
 
   protected compute(buffer: {}) {}
 
-  frame(frame: number, elapsed: number, buffer: Uint8Array) {
+  frame(frame: number, elapsed: number, mouse: any, buffer: Uint8Array) {
     const {
       device,
       swapChain,
-      uniformBuffer,
+      timeBuffer,
+      mouseBuffer,
       $canvas,
       blitPipeline,
       blitBindings,
@@ -149,9 +157,15 @@ export class GPUParticleEffect implements Effect {
     const upperMaxFr = upperMax / upperHalfArray.length;
     const upperAvgFr = upperAvg / upperHalfArray.length;
 
-    uniformBuffer.setSubData(
+    timeBuffer.setSubData(
       0,
       new Uint8Array(new Float32Array([frame, elapsed]).buffer),
+    );
+    mouseBuffer.setSubData(
+      0,
+      new Uint8Array(
+        new Uint32Array([mouse.pos.x, mouse.pos.y, mouse.click]).buffer,
+      ),
     );
 
     this.compute({
@@ -181,7 +195,8 @@ export class GPUParticleEffect implements Effect {
   }
 
   destroy() {
-    this.uniformBuffer.destroy();
+    this.timeBuffer.destroy();
+    this.mouseBuffer.destroy();
     this.blitPipeline.destroy();
     this.device.destroy();
   }

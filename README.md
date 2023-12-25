@@ -49,6 +49,8 @@ Create a [AudioContext]() and [Analyser]().
 audio.data($audio);
 ```
 
+- $audio `HTMLAudioElement`
+
 ### effect()
 
 Create an effect.
@@ -87,7 +89,25 @@ audio.destroy();
 
 We provide the following effect now.
 
-### GPU Sine
+- GPU Particles
+
+### GPU Particles
+
+- Sine
+- Stardust
+- Black Hole
+
+For more informations, see https://observablehq.com/@antv/compute-toys#cell-712
+
+```ts
+const shaderCompilerPath = new URL(
+  '/public/glsl_wgsl_compiler_bg.wasm',
+  import.meta.url,
+).href;
+const effect = new Stardust(shaderCompilerPath, {});
+```
+
+#### GPU Sine
 
 <img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*ZSEdS7qJSagAAAAAAAAAAAAADvR5AQ/original" alt="gpu sine" height="200" />
 
@@ -99,7 +119,7 @@ We provide the following effect now.
 - samples `number`
 - mode `number`
 
-### GPU Stardust
+#### GPU Stardust
 
 <img src="https://mdn.alipayobjects.com/huamei_vbm5bl/afts/img/A*PcO9Qq58pQYAAAAAAAAAAAAADvR5AQ/original" alt="gpu stardust" height="200" />
 
@@ -115,7 +135,7 @@ We provide the following effect now.
 - accumulation `number`
 - exposure `number`
 
-### GPU BlackHole
+#### GPU BlackHole
 
 https://en.wikipedia.org/wiki/Kerr%E2%80%93Newman_metric
 

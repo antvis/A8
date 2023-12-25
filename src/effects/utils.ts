@@ -87,8 +87,14 @@ export const prelude = /* wgsl */ `
     frame: u32,
     elapsed : f32
   }
+
+  struct Mouse { 
+    pos: uint2, 
+    click: int
+  }
   
   @group(0) @binding(0) var<uniform> time : Time;
+  @group(0) @binding(1) var<uniform> mouse: Mouse;
   @group(1) @binding(0) var pass_in: texture_2d_array<f32>;
   @group(1) @binding(1) var bilinear: sampler;
   @group(3) @binding(0) var screen : texture_storage_2d<rgba16float, write>;
