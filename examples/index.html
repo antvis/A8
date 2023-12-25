@@ -22,10 +22,31 @@
     .lil-gui .c select {
       color: black;
     }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: black;
+    }
+
+    #audio-block {
+      position: absolute;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
   </style>
-  <label htmlFor="file">
-    <input type="file" id="file" accept="audio/*" />
-  </label>
-  <audio id="audio" controls></audio>
+  <div id="audio-block">
+    <label htmlFor="file">
+      <input type="file" id="file" accept="audio/*" />
+    </label>
+    <audio id="audio" controls></audio>
+  </div>
   <div id="container"></div>
 </html>

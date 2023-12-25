@@ -1,3 +1,4 @@
+import { Audio } from '../src';
 import * as demos from './demos';
 import { initExample } from './utils';
 
@@ -35,16 +36,65 @@ const handleFileChanged = (e) => {
 };
 $file.onchange = handleFileChanged;
 
-let callback: () => void;
+// @see https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API
+function toggleFullScreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else if (document.exitFullscreen) {
+    document.exitFullscreen();
+  }
+}
+document.addEventListener(
+  'keydown',
+  (e) => {
+    if (e.key === 'Enter') {
+      toggleFullScreen();
+    }
+  },
+  false,
+);
+
+let audio: Audio;
+const throttle = (func, delay) => {
+  // Previously called time of the function
+  let prev = 0;
+  return (...args) => {
+    // Current called time of the function
+    let now = new Date().getTime();
+
+    // Logging the difference
+    // between previously
+    // called and current called timings
+    console.log(now - prev, delay);
+
+    // If difference is greater
+    // than delay call
+    // the function again.
+    if (now - prev > delay) {
+      prev = now;
+
+      // "..." is the spread
+      // operator here
+      // returning the function with the
+      // array of arguments
+      return func(...args);
+    }
+  };
+};
+window.addEventListener('resize', () => {
+  if (audio) {
+    throttle(audio.resize(window.innerWidth, window.innerHeight), 300);
+  }
+});
 
 async function render() {
-  if (callback) {
-    callback();
+  if (audio) {
+    audio.destroy();
   }
   $container.innerHTML = '';
 
   const demo = demos[select.value];
-  callback = await initExample($container, $audio, demo);
+  audio = await initExample($container, $audio, demo);
 
   // @ts-ignore
   if (window.screenshot) {

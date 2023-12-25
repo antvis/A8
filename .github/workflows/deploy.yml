@@ -1,35 +1,16 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Deploy
 
 on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ['main']
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
-# Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow one concurrent deployment
-concurrency:
-  group: 'pages'
-  cancel-in-progress: true
+  push:
+    branches:
+      - master
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  deploy-site:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       # Python 3.11 和 node-gyp 有兼容问题, 导致无法安装依赖
       # https://github.com/slint-ui/slint/commit/a9c48e33502fdebc36c5aa2f4f516c2218424679#diff-944291df2c9c06359d37cc8833d182d705c9e8c3108e7cfe132d61a06e9133dd
@@ -44,21 +25,26 @@ jobs:
       - name: Use Node.js 16
         uses: actions/setup-node@v3
         with:
-          node-version: 16 # semantic-release 需要 >= 16 的 Node.js 环境
+          node-version: 16
           cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Deploy
+      - name: Build
         run: pnpm run deploy
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+
+      - run: |
+          cd examples/dist
+          git init
+          git config --local user.name xiaoiver
+          git config --local user.email pyqiverson@gmail.com
+          git add .
+          git commit -m "update by release action"
+
+      - uses: ad-m/github-push-action@master
         with:
-          # Upload dist repository
-          path: './examples/dist'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          directory: examples/dist
+          branch: gh-pages
+          force: true

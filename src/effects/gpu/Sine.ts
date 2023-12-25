@@ -3,31 +3,26 @@ import {
   Buffer,
   BufferUsage,
   ComputePipeline,
-  Device,
-  Format,
-  RenderPipeline,
-  RenderTarget,
-  SwapChain,
-  TextureDimension,
-  TextureUsage,
-  TransparentWhite,
-  WebGPUDeviceContribution,
 } from '@antv/g-device-api';
-import {
-  createBlitPipelineAndBindings,
-  createProgram,
-  prelude,
-  registerShaderModule,
-} from './utils';
-import { Effect } from './Effect';
-import { avg, max, modulate } from '../utils';
+import { createProgram, registerShaderModule } from '../utils';
+import { GPUParticleEffect } from './GPUParticleEffect';
+import { modulate } from '../../utils';
 
-export class Particle implements Effect {
-  private $canvas: HTMLCanvasElement;
-  private device: Device;
-  private swapChain: SwapChain;
-  private renderTarget: RenderTarget;
-  private uniformBuffer: Buffer;
+export interface SineOptions {
+  radius: number;
+  sinea: number;
+  sineb: number;
+  speed: number;
+  blur: number;
+  samples: number;
+  mode: number;
+}
+
+/**
+ * @see https://compute.toys/view/21
+ */
+export class Sine extends GPUParticleEffect {
+  private options: SineOptions;
   private customUniformBuffer: Buffer;
   private clearPipeline: ComputePipeline;
   private clearBindings: Bindings;
@@ -35,37 +30,24 @@ export class Particle implements Effect {
   private rasterizeBindings: Bindings;
   private mainImagePipeline: ComputePipeline;
   private mainImageBindings: Bindings;
-  private blitPipeline: RenderPipeline;
-  private blitBindings: Bindings;
 
-  constructor(private shaderCompilerPath: string) {}
+  constructor(shaderCompilerPath: string, options: Partial<SineOptions> = {}) {
+    super(shaderCompilerPath);
 
-  async init($canvas: HTMLCanvasElement) {
-    this.$canvas = $canvas;
-    const deviceContribution = new WebGPUDeviceContribution({
-      shaderCompilerPath: this.shaderCompilerPath,
-    });
+    this.options = {
+      radius: 1,
+      sinea: 1,
+      sineb: 1,
+      speed: 0.885,
+      blur: 0,
+      samples: 0.001,
+      mode: 0,
+      ...options,
+    };
+  }
 
-    // create swap chain and get device
-    const swapChain = await deviceContribution.createSwapChain($canvas);
-    swapChain.configureSwapChain($canvas.width, $canvas.height);
-    const device = swapChain.getDevice();
-    this.device = device;
-    this.swapChain = swapChain;
-
-    const screen = device.createTexture({
-      // Use F32_RGBA
-      // @see https://www.w3.org/TR/webgpu/#float32-filterable
-      // @see https://github.com/compute-toys/wgpu-compute-toy/blob/master/src/bind.rs#L433
-      format: Format.F16_RGBA,
-      width: $canvas.width,
-      height: $canvas.height,
-      dimension: TextureDimension.TEXTURE_2D,
-      usage: TextureUsage.STORAGE,
-    });
-
-    const { pipeline: blitPipeline, bindings: blitBindings } =
-      createBlitPipelineAndBindings(device, screen);
+  registerShaderModule() {
+    const { device, screen, $canvas } = this;
 
     const custom = /* wgsl */ `
 #define_import_path custom
@@ -80,15 +62,14 @@ struct Custom {
   Mode: f32
 }
 @group(0) @binding(1) var<uniform> custom: Custom;
-
   `;
-
-    registerShaderModule(device, prelude);
     registerShaderModule(device, custom);
 
     const computeWgsl = /* wgsl */ `
-  #import prelude::{screen, time};
-  #import custom::{custom};
+#import prelude::{screen, time};
+#import math::{PI, TWO_PI, nrand4, state};
+#import camera::{Camera, camera, GetCameraMatrix, Project};
+#import custom::{custom};
 
   @group(2) @binding(0) var<storage, read_write> atomic_storage : array<atomic<i32>>;
 
@@ -97,54 +78,11 @@ struct Custom {
   //Mode 1 - closest sample (atomicMax)
 
   const MaxSamples = 64.0;
-  const FOV = 0.8;
-  const PI = 3.14159265;
-  const TWO_PI = 6.28318530718;
+  const FOV = 1.2;
 
   const DEPTH_MIN = 0.2;
   const DEPTH_MAX = 5.0;
   const DEPTH_BITS = 16u;
-
-  struct Camera
-  {
-    pos: float3,
-    cam: float3x3,
-    fov: float,
-    size: float2
-  }
-
-  var<private> camera : Camera;
-  var<private> state : uint4;
-
-  fn pcg4d(a: uint4) -> uint4
-  {
-  	var v = a * 1664525u + 1013904223u;
-      v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
-      v = v ^  ( v >> uint4(16u) );
-      v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
-      return v;
-  }
-
-  fn rand4() -> float4
-  {
-      state = pcg4d(state);
-      return float4(state)/float(0xffffffffu);
-  }
-
-  fn nrand4(sigma: float, mean: float4) -> float4
-  {
-      let Z = rand4();
-      return mean + sigma * sqrt(-2.0 * log(Z.xxyy)) *
-             float4(cos(TWO_PI * Z.z),sin(TWO_PI * Z.z),cos(TWO_PI * Z.w),sin(TWO_PI * Z.w));
-  }
-
-  fn GetCameraMatrix(ang: float2) -> float3x3
-  {
-      let x_dir = float3(cos(ang.x)*sin(ang.y), cos(ang.y), sin(ang.x)*sin(ang.y));
-      let y_dir = normalize(cross(x_dir, float3(0.0,1.0,0.0)));
-      let z_dir = normalize(cross(y_dir, x_dir));
-      return float3x3(-x_dir, y_dir, z_dir);
-  }
 
   fn SetCamera(ang: float2, fov: float)
   {
@@ -152,15 +90,6 @@ struct Custom {
       camera.cam = GetCameraMatrix(ang);
       camera.pos = - (camera.cam*float3(3.0*custom.Radius+0.5,0.0,0.0));
       camera.size = float2(textureDimensions(screen));
-  }
-
-  //project to clip space
-  fn Project(cam: Camera, p: float3) -> float3
-  {
-      let td = distance(cam.pos, p);
-      let dir = (p - cam.pos)/td;
-      let screen = dir*cam.cam;
-      return float3(screen.yz*cam.size.y/(cam.fov*screen.x) + 0.5*cam.size,screen.x*td);
   }
 
   @compute @workgroup_size(16, 16)
@@ -337,14 +266,6 @@ struct Custom {
       },
     });
 
-    const uniformBuffer = device.createBuffer({
-      viewOrSize: 2 * Float32Array.BYTES_PER_ELEMENT,
-      usage: BufferUsage.UNIFORM,
-    });
-    uniformBuffer.setSubData(
-      0,
-      new Uint8Array(new Float32Array([0, 0]).buffer),
-    );
     const customUniformBuffer = device.createBuffer({
       viewOrSize: 7 * Float32Array.BYTES_PER_ELEMENT,
       usage: BufferUsage.UNIFORM,
@@ -389,7 +310,7 @@ struct Custom {
       uniformBufferBindings: [
         {
           binding: 0,
-          buffer: uniformBuffer,
+          buffer: this.uniformBuffer,
         },
         {
           binding: 1,
@@ -431,13 +352,6 @@ struct Custom {
       ],
     });
 
-    const renderTarget = device.createRenderTarget({
-      format: Format.U8_RGBA_RT,
-      width: $canvas.width,
-      height: $canvas.height,
-    });
-
-    this.uniformBuffer = uniformBuffer;
     this.customUniformBuffer = customUniformBuffer;
     this.clearPipeline = clearPipeline;
     this.clearBindings = clearBindings;
@@ -445,39 +359,13 @@ struct Custom {
     this.rasterizeBindings = rasterizeBindings;
     this.mainImagePipeline = mainImagePipeline;
     this.mainImageBindings = mainImageBindings;
-    this.blitPipeline = blitPipeline;
-    this.blitBindings = blitBindings;
-    this.renderTarget = renderTarget;
   }
 
-  /**
-   * Parameter changes
-   */
-  update() {}
-
-  frame(frame: number, elapsed: number, buffer: Uint8Array) {
-    const lowerHalfArray = buffer.slice(0, buffer.length / 2 - 1);
-    const upperHalfArray = buffer.slice(
-      buffer.length / 2 - 1,
-      buffer.length - 1,
-    );
-
-    const overallAvg = avg(buffer);
-    const lowerMax = max(lowerHalfArray);
-    const lowerAvg = avg(lowerHalfArray);
-    const upperMax = max(upperHalfArray);
-    const upperAvg = avg(upperHalfArray);
-
-    const lowerMaxFr = lowerMax / lowerHalfArray.length;
-    const lowerAvgFr = lowerAvg / lowerHalfArray.length;
-    const upperMaxFr = upperMax / upperHalfArray.length;
-    const upperAvgFr = upperAvg / upperHalfArray.length;
-
+  compute({ overallAvg, upperAvgFr, lowerAvgFr }) {
     const {
-      device,
-      swapChain,
-      uniformBuffer,
+      options,
       customUniformBuffer,
+      device,
       $canvas,
       clearPipeline,
       clearBindings,
@@ -485,79 +373,44 @@ struct Custom {
       rasterizeBindings,
       mainImagePipeline,
       mainImageBindings,
-      blitPipeline,
-      blitBindings,
-      renderTarget,
     } = this;
-
-    uniformBuffer.setSubData(
-      0,
-      new Uint8Array(new Float32Array([frame, elapsed]).buffer),
-    );
     customUniformBuffer.setSubData(
       0,
       new Uint8Array(
-        // Radius: f32,
-        // Sinea: f32,
-        // Sineb: f32,
-        // Speed: f32,
-        // Blur: f32,
-        // Samples: f32,
-        // Mode: f32
         new Float32Array([
-          modulate(overallAvg, 0, 1, 0.5, 4) / 2000,
-          modulate(upperAvgFr, 0, 1, 0.5, 4) / 3,
-          modulate(lowerAvgFr, 0, 1, 0.5, 4) / 3,
-          0.485,
-          0,
-          0.25,
-          0,
+          (modulate(overallAvg, 0, 1, 0.5, 4) / 4000) * options.radius,
+          (modulate(upperAvgFr, 0, 1, 0.5, 4) / 3) * options.sinea,
+          (modulate(lowerAvgFr, 0, 1, 0.5, 4) / 3) * options.sineb,
+          options.speed,
+          options.blur,
+          options.samples,
+          options.mode,
         ]).buffer,
       ),
     );
 
+    const x = Math.ceil($canvas.width / 16);
+    const y = Math.ceil($canvas.height / 16);
+
     const computePass = device.createComputePass();
     computePass.setPipeline(clearPipeline);
     computePass.setBindings(clearBindings);
-    computePass.dispatchWorkgroups(
-      Math.ceil($canvas.width / 16),
-      Math.ceil($canvas.height / 16),
-    );
+    computePass.dispatchWorkgroups(x, y);
 
     computePass.setPipeline(rasterizePipeline);
     computePass.setBindings(rasterizeBindings);
-    computePass.dispatchWorkgroups(
-      Math.ceil($canvas.width / 16),
-      Math.ceil($canvas.height / 16),
-    );
+    computePass.dispatchWorkgroups(x, y);
 
     computePass.setPipeline(mainImagePipeline);
     computePass.setBindings(mainImageBindings);
-    computePass.dispatchWorkgroups(
-      Math.ceil($canvas.width / 16),
-      Math.ceil($canvas.height / 16),
-    );
+    computePass.dispatchWorkgroups(x, y);
     device.submitPass(computePass);
-
-    /**
-     * An application should call getCurrentTexture() in the same task that renders to the canvas texture.
-     * Otherwise, the texture could get destroyed by these steps before the application is finished rendering to it.
-     */
-    const onscreenTexture = swapChain.getOnscreenTexture();
-    const renderPass = device.createRenderPass({
-      colorAttachment: [renderTarget],
-      colorResolveTo: [onscreenTexture],
-      colorClearColor: [TransparentWhite],
-    });
-    renderPass.setPipeline(blitPipeline);
-    renderPass.setBindings(blitBindings);
-    renderPass.setViewport(0, 0, $canvas.width, $canvas.height);
-    renderPass.draw(3);
-
-    device.submitPass(renderPass);
   }
 
-  destroy() {
-    this.device.destroy();
+  update(options: Partial<SineOptions>) {
+    this.options = {
+      ...this.options,
+      ...options,
+    };
   }
 }

@@ -2,8 +2,8 @@ import { Effect } from './effects';
 
 export interface Options {
   canvas: HTMLCanvasElement;
-  data: HTMLMediaElement;
-  effect: Effect;
+  data?: HTMLMediaElement;
+  effect?: Effect;
 }
 
 export class Audio {
@@ -12,9 +12,15 @@ export class Audio {
   private timer: number;
   private ready: Promise<void>;
 
+  onframe: () => void = () => {};
+
   constructor(private options: Options) {
-    this.initAnalyser();
-    this.initEffect();
+    if (options.data) {
+      this.initAnalyser();
+    }
+    if (options.effect) {
+      this.initEffect();
+    }
   }
 
   private initAnalyser() {
@@ -36,7 +42,22 @@ export class Audio {
     this.ready = effect.init(canvas);
   }
 
-  data($audio: HTMLMediaElement) {}
+  data($audio: HTMLMediaElement) {
+    this.options.data = $audio;
+    this.initAnalyser();
+    return this;
+  }
+
+  effect(effect: Effect) {
+    this.options.effect = effect;
+    this.initEffect();
+    return this;
+  }
+
+  style(options: any) {
+    this.options.effect?.update(options);
+    return this;
+  }
 
   async play() {
     await this.ready;
@@ -46,11 +67,23 @@ export class Audio {
       this.analyser.getByteFrequencyData(this.dataArray);
       this.options.effect.frame(frame, elapsed / 1000, this.dataArray);
 
+      this.onframe();
       frame++;
       this.timer = requestAnimationFrame(tick);
     };
 
     this.timer = requestAnimationFrame(tick);
+  }
+
+  resize(width: number, height: number) {
+    const { canvas } = this.options;
+    const $canvas = canvas;
+    $canvas.width = width * window.devicePixelRatio;
+    $canvas.height = height * window.devicePixelRatio;
+    $canvas.style.width = `${$canvas.width / window.devicePixelRatio}px`;
+    $canvas.style.height = `${$canvas.height / window.devicePixelRatio}px`;
+
+    this.options.effect.resize($canvas.width, $canvas.height);
   }
 
   destroy() {
