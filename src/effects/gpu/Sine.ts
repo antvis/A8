@@ -35,7 +35,7 @@ export class Sine extends GPUParticleEffect {
     super(shaderCompilerPath);
 
     this.options = {
-      radius: 1,
+      radius: 6,
       sinea: 1,
       sineb: 1,
       speed: 0.885,
@@ -194,57 +194,41 @@ struct Custom {
       }
   }
 
-  fn Sample(pos: int2) -> float3
-  {
-      let screen_size = int2(textureDimensions(screen));
-      let idx = pos.x + screen_size.x * pos.y;
+fn Sample(pos: int2) -> float3 {
+  let screen_size = int2(textureDimensions(screen));
+  let idx = pos.x + screen_size.x * pos.y;
 
-      var color: float3;
-      if(custom.Mode < 0.5)
-      {
-          let x = float(atomicLoad(&atomic_storage[idx*4+0]))/(256.0);
-          let y = float(atomicLoad(&atomic_storage[idx*4+1]))/(256.0);
-          let z = float(atomicLoad(&atomic_storage[idx*4+2]))/(256.0);
+  var color: float3;
+  if (custom.Mode < 0.5) {
+    let x = float(atomicLoad(&atomic_storage[idx*4+0]))/(256.0);
+    let y = float(atomicLoad(&atomic_storage[idx*4+1]))/(256.0);
+    let z = float(atomicLoad(&atomic_storage[idx*4+2]))/(256.0);
 
-          color = tanh(0.1*float3(x,y,z)/(custom.Samples*MaxSamples + 1.0));
-      }
-      else
-      {
-          let x = Unpack(atomicLoad(&atomic_storage[idx*4+0]));
-          let y = Unpack(atomicLoad(&atomic_storage[idx*4+1]));
-          let z = Unpack(atomicLoad(&atomic_storage[idx*4+2]));
+    color = tanh(0.1*float3(x,y,z)/(custom.Samples*MaxSamples + 1.0));
+  } else {
+    let x = Unpack(atomicLoad(&atomic_storage[idx*4+0]));
+    let y = Unpack(atomicLoad(&atomic_storage[idx*4+1]));
+    let z = Unpack(atomicLoad(&atomic_storage[idx*4+2]));
 
-          color = float3(x,y,z);
-      }
-
-      return abs(color);
+    color = float3(x,y,z);
   }
 
-  //to remove canvas aliasing
-  fn SampleBlur(pos: int2) -> float3
-  {
-      let avg = Sample(pos+int2(1,0))+Sample(pos+int2(-1,0))+
-                Sample(pos+int2(0,1))+Sample(pos+int2(0,-1));
-      return mix(Sample(pos), 0.25*avg, custom.Blur);
-  }
+  return abs(color);
+}
 
-  @compute @workgroup_size(16, 16)
-  fn main_image(@builtin(global_invocation_id) id: uint3)
-  {
-      let screen_size = uint2(textureDimensions(screen));
+@compute @workgroup_size(16, 16)
+fn main_image(@builtin(global_invocation_id) id: uint3) {
+  let screen_size = uint2(textureDimensions(screen));
 
-      // Prevent overdraw for workgroups on the edge of the viewport
-      if (id.x >= screen_size.x || id.y >= screen_size.y) { return; }
+  // Prevent overdraw for workgroups on the edge of the viewport
+  if (id.x >= screen_size.x || id.y >= screen_size.y) { return; }
 
-      // Pixel coordinates (centre of pixel, origin at bottom left)
-      let fragCoord = float2(float(id.x) + .5, float(id.y) + .5);
+  let color = float4(Sample(int2(id.xy)),1.0);
 
-      let color = SampleBlur(int2(id.xy));
-
-      // Output to screen (linear colour space)
-      textureStore(screen, int2(id.xy), float4(color, 1.));
-  }
-          `;
+  // Output to screen (linear colour space)
+  textureStore(screen, int2(id.xy), color);
+}
+`;
 
     const clearProgram = createProgram(device, {
       compute: {

@@ -238,8 +238,7 @@ fn main_image(@builtin(global_invocation_id) id: uint3) {
   if (id.x >= screen_size.x || id.y >= screen_size.y) { return; }
 
   // Pixel coordinates (centre of pixel, origin at bottom left)
-  let fragCoord = float2(float(id.x) + .5, float(id.y) + .5);
-
+  // let fragCoord = float2(float(id.x) + .5, float(id.y) + .5);
 
   var color = float4(Sample(int2(id.xy)),1.0);
 

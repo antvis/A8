@@ -61,17 +61,14 @@ const $block = document.getElementById('audio-block');
   $spinner.style.display = 'block';
   $file.setAttribute('disabled', '');
 
-  // Loading WASM
-  await fetch(
-    new URL('/public/glsl_wgsl_compiler_bg.wasm', import.meta.url).href,
-  );
-  $spinner.style.display = 'none';
-  $file.removeAttribute('disabled');
-
   // Create Audio
   audio = new Audio({
     canvas: $canvas,
   });
+  audio.oninit = () => {
+    $spinner.style.display = 'none';
+    $file.removeAttribute('disabled');
+  };
   audio.onframe = () => {
     stats.update();
   };

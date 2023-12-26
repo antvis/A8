@@ -13,6 +13,7 @@ export class Audio {
   private mouse = { pos: { x: 0, y: 0 }, click: 0 };
   private ready: Promise<void>;
 
+  oninit: () => void = () => {};
   onframe: () => void = () => {};
 
   constructor(private options: Options) {
@@ -42,6 +43,9 @@ export class Audio {
   private initEffect() {
     const { canvas, effect } = this.options;
     this.ready = effect.init(canvas);
+    if (this.oninit) {
+      this.ready.then(this.oninit);
+    }
   }
 
   private initMouseListener() {

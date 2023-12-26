@@ -10,7 +10,7 @@ export function render(audio: Audio, gui: lil.GUI) {
 
   const folder = gui.addFolder('effect');
   const config = {
-    radius: 1,
+    radius: 6,
     sinea: 1,
     sineb: 1,
     speed: 0.885,
