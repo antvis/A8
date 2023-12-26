@@ -1,35 +1,26 @@
 import * as lil from 'lil-gui';
 import { Audio, Stardust } from '../../src';
 
-export async function render(
-  $canvas: HTMLCanvasElement,
-  $audio: HTMLAudioElement,
-  gui: lil.GUI,
-) {
+export function render(audio: Audio, gui: lil.GUI) {
   const shaderCompilerPath = new URL(
     '/public/glsl_wgsl_compiler_bg.wasm',
     import.meta.url,
   ).href;
   const effect = new Stardust(shaderCompilerPath);
 
-  const audio = new Audio({
-    canvas: $canvas,
-  });
-  audio.data($audio).effect(effect).play();
-
   const folder = gui.addFolder('effect');
   const config = {
-    radius: 1,
-    blurRadius: 0.489,
-    samples: 0.632,
+    radius: 2.27,
+    blurRadius: 0.053,
+    samples: 0.115,
     speed: 0.885,
     animatedNoise: 1,
     accumulation: 0.962,
-    exposure: 0.224,
+    exposure: 0.779,
     blurExponentA: 1,
     blurExponentB: 1,
-    velocityDecay: 0.018,
-    timeStep: 0.313,
+    velocityDecay: 0.017,
+    timeStep: 0.373,
   };
 
   folder.add(config, 'radius', 0, 10).onChange((radius: number) => {
@@ -74,5 +65,5 @@ export async function render(
     audio.style({ timeStep });
   });
 
-  return audio;
+  return [effect, folder];
 }

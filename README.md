@@ -43,22 +43,21 @@ new Audio({
 
 ### data()
 
-Create a [AudioContext]() and [Analyser]().
+Pass in an `HTMLAudioElement`, create a [AudioContext]() and [Analyser]() later.
 
 ```ts
 audio.data($audio);
 ```
 
-- $audio `HTMLAudioElement`
-
 ### effect()
 
-Create an effect.
+Mount an effect.
 
 ```ts
 import { Sine } from '@antv/a8';
 
 audio.effect(new Sine());
+audio.effect(new Sine()); // switch to another
 ```
 
 ### style()
@@ -93,9 +92,9 @@ We provide the following effect now.
 
 ### GPU Particles
 
-- Sine
-- Stardust
-- Black Hole
+- [Sine](#gpu-sine)
+- [Stardust](#gpu-stardust)
+- [Black Hole](#gpu-blackhole)
 
 When creating GPU particle effects, we should use a WASM to compile shader chunks. For more informations, see https://observablehq.com/@antv/compute-toys#cell-712
 
@@ -216,3 +215,7 @@ https://en.wikipedia.org/wiki/Kerr%E2%80%93Newman_metric
 - focalPlane `number`
 - motionBlur `number`
 - gamma `number`
+
+## Appendix
+
+- https://juandiegomontoya.github.io/particles.html

@@ -8,7 +8,7 @@ export interface Options {
 
 export class Audio {
   private analyser: AnalyserNode;
-  private dataArray: Uint8Array;
+  private dataArray: Uint8Array = new Uint8Array(512).fill(0);
   private timer: number;
   private mouse = { pos: { x: 0, y: 0 }, click: 0 };
   private ready: Promise<void>;
@@ -68,6 +68,9 @@ export class Audio {
   }
 
   effect(effect: Effect) {
+    if (this.options.effect && effect !== this.options.effect) {
+      this.options.effect.destroy();
+    }
     this.options.effect = effect;
     this.initEffect();
     return this;
@@ -83,7 +86,7 @@ export class Audio {
 
     let frame = 0;
     const tick = (elapsed: number) => {
-      this.analyser.getByteFrequencyData(this.dataArray);
+      this.analyser?.getByteFrequencyData(this.dataArray);
       this.options.effect.frame(
         frame,
         elapsed / 1000,

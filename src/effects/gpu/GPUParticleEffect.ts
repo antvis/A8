@@ -37,6 +37,7 @@ export class GPUParticleEffect implements Effect {
   private blitPipeline: RenderPipeline;
   private blitBindings: Bindings;
   private resized = false;
+  private inited = false;
 
   constructor(private shaderCompilerPath: string) {}
 
@@ -104,6 +105,8 @@ export class GPUParticleEffect implements Effect {
     this.renderTarget = renderTarget;
 
     this.registerShaderModule();
+
+    this.inited = true;
   }
 
   resize(width: number, height: number) {
@@ -118,6 +121,10 @@ export class GPUParticleEffect implements Effect {
   protected compute(buffer: {}) {}
 
   frame(frame: number, elapsed: number, mouse: any, buffer: Uint8Array) {
+    if (!this.inited) {
+      return;
+    }
+
     const {
       device,
       swapChain,
@@ -195,6 +202,8 @@ export class GPUParticleEffect implements Effect {
   }
 
   destroy() {
+    this.screen.destroy();
+    this.renderTarget.destroy();
     this.timeBuffer.destroy();
     this.mouseBuffer.destroy();
     this.blitPipeline.destroy();

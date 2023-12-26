@@ -53,17 +53,17 @@ export class Stardust extends GPUParticleEffect {
     super(shaderCompilerPath);
 
     this.options = {
-      radius: 1,
-      blurRadius: 0.489,
-      samples: 0.632,
+      radius: 2.27,
+      blurRadius: 0.053,
+      samples: 0.115,
       speed: 0.885,
       animatedNoise: 1,
       accumulation: 0.962,
-      exposure: 0.224,
+      exposure: 0.779,
       blurExponentA: 1,
       blurExponentB: 1,
-      velocityDecay: 0.018,
-      timeStep: 0.313,
+      velocityDecay: 0.017,
+      timeStep: 0.373,
       ...options,
     };
   }
@@ -364,13 +364,11 @@ fn main_image(@builtin(global_invocation_id) id: uint3) {
       pipeline: clearPipeline,
       storageBufferBindings: [
         {
-          binding: 0,
           buffer: storageBuffer,
         },
       ],
       storageTextureBindings: [
         {
-          binding: 0,
           texture: screen,
         },
       ],
@@ -397,13 +395,11 @@ fn main_image(@builtin(global_invocation_id) id: uint3) {
       ],
       storageBufferBindings: [
         {
-          binding: 0,
           buffer: storageBuffer,
         },
       ],
       storageTextureBindings: [
         {
-          binding: 0,
           texture: screen,
         },
       ],
@@ -429,17 +425,14 @@ fn main_image(@builtin(global_invocation_id) id: uint3) {
       ],
       storageBufferBindings: [
         {
-          binding: 0,
           buffer: storageBuffer,
         },
       ],
       storageTextureBindings: [
         {
-          binding: 0,
           texture: screen,
         },
         {
-          binding: 1,
           texture: pass_out,
         },
       ],

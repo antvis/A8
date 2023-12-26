@@ -1,120 +1,103 @@
-import { Audio } from '../src';
+import * as lil from 'lil-gui';
+import Stats from 'stats.js';
+import { Audio, Effect } from '../src';
 import * as demos from './demos';
-import { initExample } from './utils';
-
-const select = document.createElement('select');
-select.id = 'example-select';
-select.style.margin = '1em';
-select.onchange = onChange;
-select.style.display = 'block';
-document.body.append(select);
-
-const options = Object.keys(demos).map((d) => {
-  const option = document.createElement('option');
-  option.textContent = d;
-  option.value = d;
-  return option;
-});
-options.forEach((d) => select.append(d));
-
-const initialValue = new URL(location as any).searchParams.get(
-  'name',
-) as string;
-if (demos[initialValue]) select.value = initialValue;
-
-const $container = document.getElementById('container')!;
-const $file = document.getElementById('file')!;
-const $block = document.getElementById('audio-block');
-let $audio: HTMLAudioElement;
-
-const handleFileChanged = (e) => {
-  if ($audio) {
-    $audio?.remove();
-  }
-
-  $audio = document.createElement('audio');
-  $block?.appendChild($audio);
-  $audio.id = 'audio';
-  $audio.controls = true;
-  const files = e.target.files;
-  $audio.src = URL.createObjectURL(files[0]);
-  $audio.load();
-  $audio.play();
-
-  render();
-};
-$file.onchange = handleFileChanged;
-
-// @see https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API
-function toggleFullScreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen();
-  } else if (document.exitFullscreen) {
-    document.exitFullscreen();
-  }
-}
-document.addEventListener(
-  'keydown',
-  (e) => {
-    if (e.key === 'Enter') {
-      toggleFullScreen();
-    }
-  },
-  false,
-);
+import { initFullscreen } from './utils';
 
 let audio: Audio;
-const throttle = (func, delay) => {
-  // Previously called time of the function
-  let prev = 0;
-  return (...args) => {
-    // Current called time of the function
-    let now = new Date().getTime();
-
-    // Logging the difference
-    // between previously
-    // called and current called timings
-    console.log(now - prev, delay);
-
-    // If difference is greater
-    // than delay call
-    // the function again.
-    if (now - prev > delay) {
-      prev = now;
-
-      // "..." is the spread
-      // operator here
-      // returning the function with the
-      // array of arguments
-      return func(...args);
-    }
-  };
-};
-window.addEventListener('resize', () => {
-  if (audio) {
-    throttle(audio.resize(window.innerWidth, window.innerHeight), 300);
-  }
-});
-
-async function render() {
-  if (!$audio) return;
-  if (audio) {
-    audio.destroy();
-  }
-  $container.innerHTML = '';
-
-  const demo = demos[select.value];
-  audio = await initExample($container, $audio, demo);
-
-  // @ts-ignore
-  if (window.screenshot) {
-    // @ts-ignore
-    await window.screenshot();
-  }
-}
-
-function onChange() {
-  const { value } = select;
+let effect: Effect;
+let folder: lil.GUI;
+const $container = document.getElementById('container')!;
+const initialEffect =
+  (new URL(location as any).searchParams.get('name') as string) || 'GPUSine';
+const changeEffect = (value: string) => {
   history.pushState({ value }, '', `?name=${value}`);
-  render();
-}
+  if (folder) {
+    folder.destroy();
+  }
+
+  // Switch effect
+  [effect, folder] = demos[value](audio, gui);
+  audio.effect(effect);
+};
+
+// GUI
+let gui = new lil.GUI({ autoPlace: false });
+const effectFolder = gui.addFolder('effect');
+const effectConfig = {
+  name: initialEffect,
+};
+effectFolder
+  .add(effectConfig, 'name', Object.keys(demos))
+  .onChange(changeEffect);
+$container.appendChild(gui.domElement);
+
+const $spinner = document.getElementById('spinner')!;
+const $file = document.getElementById('file')!;
+const $canvasContainer = document.createElement('div');
+$canvasContainer.id = 'canvas';
+$container.appendChild($canvasContainer);
+const $canvas = document.createElement('canvas');
+$canvas.width = window.innerWidth * window.devicePixelRatio;
+$canvas.height = window.innerHeight * window.devicePixelRatio;
+$canvas.style.width = `${$canvas.width / window.devicePixelRatio}px`;
+$canvas.style.height = `${$canvas.height / window.devicePixelRatio}px`;
+$canvas.style.outline = 'none';
+$canvas.style.padding = '0px';
+$canvas.style.margin = '0px';
+$canvasContainer.appendChild($canvas);
+
+// stats.js
+const stats = new Stats();
+stats.showPanel(0);
+const $stats = stats.dom;
+$stats.style.position = 'absolute';
+$stats.style.left = '0px';
+$stats.style.bottom = '0px';
+document.body.appendChild($stats);
+const $block = document.getElementById('audio-block');
+
+(async () => {
+  $spinner.style.display = 'block';
+  $file.setAttribute('disabled', '');
+
+  // Loading WASM
+  await fetch(
+    new URL('/public/glsl_wgsl_compiler_bg.wasm', import.meta.url).href,
+  );
+  $spinner.style.display = 'none';
+  $file.removeAttribute('disabled');
+
+  // Create Audio
+  audio = new Audio({
+    canvas: $canvas,
+  });
+  audio.onframe = () => {
+    stats.update();
+  };
+
+  changeEffect(initialEffect);
+  audio.play();
+
+  initFullscreen(audio);
+
+  let $audio: HTMLAudioElement;
+  $file.onchange = (e) => {
+    if ($audio) {
+      $audio?.remove();
+    }
+
+    $audio = document.createElement('audio');
+    $block?.appendChild($audio);
+    $audio.id = 'audio';
+    $audio.controls = true;
+    // @ts-ignore
+    const files = e.target.files;
+    $audio.src = URL.createObjectURL(files[0]);
+    $audio.load();
+    $audio.play();
+
+    // Switch audio.
+    audio.data($audio);
+  };
+})();

@@ -1,21 +1,12 @@
 import * as lil from 'lil-gui';
 import { Audio, Sine } from '../../src';
 
-export async function render(
-  $canvas: HTMLCanvasElement,
-  $audio: HTMLAudioElement,
-  gui: lil.GUI,
-) {
+export function render(audio: Audio, gui: lil.GUI) {
   const shaderCompilerPath = new URL(
     '/public/glsl_wgsl_compiler_bg.wasm',
     import.meta.url,
   ).href;
   const effect = new Sine(shaderCompilerPath);
-
-  const audio = new Audio({
-    canvas: $canvas,
-  });
-  audio.data($audio).effect(effect).play();
 
   const folder = gui.addFolder('effect');
   const config = {
@@ -44,5 +35,5 @@ export async function render(
     audio.style({ blur });
   });
 
-  return audio;
+  return [effect, folder];
 }

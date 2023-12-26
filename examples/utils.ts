@@ -1,15 +1,12 @@
+import { throttle } from '@antv/util';
 import * as lil from 'lil-gui';
 import Stats from 'stats.js';
 import { Audio } from '../src';
 
 export async function initExample(
   $container: HTMLElement,
-  $audio: HTMLAudioElement,
-  render: (
-    $canvas: HTMLCanvasElement,
-    data: HTMLAudioElement,
-    gui: lil.GUI,
-  ) => Promise<Audio>,
+  audio: Audio,
+  render: (audio: Audio, gui: lil.GUI) => Promise<void>,
 ) {
   let $canvasContainer = document.getElementById('canvas')!;
   if ($canvasContainer) {
@@ -34,7 +31,7 @@ export async function initExample(
   const gui = new lil.GUI({ autoPlace: false });
   $container.appendChild(gui.domElement);
 
-  const audio = await render($canvas, $audio, gui);
+  await render(audio, gui);
 
   // stats.js
   const stats = new Stats();
@@ -47,6 +44,31 @@ export async function initExample(
   audio.onframe = () => {
     stats.update();
   };
+}
 
-  return audio;
+export function initFullscreen(audio: Audio) {
+  // @see https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API
+  function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.key === 'Enter') {
+        toggleFullScreen();
+      }
+    },
+    false,
+  );
+  window.addEventListener('resize', () => {
+    throttle(
+      () => audio.resize(window.innerWidth, window.innerHeight),
+      300,
+      {},
+    );
+  });
 }

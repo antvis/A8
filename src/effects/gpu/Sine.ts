@@ -293,13 +293,11 @@ struct Custom {
       pipeline: clearPipeline,
       storageBufferBindings: [
         {
-          binding: 0,
           buffer: storageBuffer,
         },
       ],
       storageTextureBindings: [
         {
-          binding: 0,
           texture: screen,
         },
       ],
@@ -308,27 +306,22 @@ struct Custom {
       pipeline: rasterizePipeline,
       uniformBufferBindings: [
         {
-          binding: 0,
           buffer: this.timeBuffer,
         },
         {
-          binding: 1,
           buffer: this.mouseBuffer,
         },
         {
-          binding: 2,
           buffer: customUniformBuffer,
         },
       ],
       storageBufferBindings: [
         {
-          binding: 0,
           buffer: storageBuffer,
         },
       ],
       storageTextureBindings: [
         {
-          binding: 0,
           texture: screen,
         },
       ],
@@ -343,13 +336,11 @@ struct Custom {
       ],
       storageBufferBindings: [
         {
-          binding: 0,
           buffer: storageBuffer,
         },
       ],
       storageTextureBindings: [
         {
-          binding: 0,
           texture: screen,
         },
       ],
@@ -415,5 +406,14 @@ struct Custom {
       ...this.options,
       ...options,
     };
+  }
+
+  destroy(): void {
+    this.customUniformBuffer.destroy();
+    this.clearPipeline.destroy();
+    this.rasterizePipeline.destroy();
+    this.mainImagePipeline.destroy();
+
+    super.destroy();
   }
 }
