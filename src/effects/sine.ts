@@ -10,7 +10,7 @@ export type Effect = (
 import { Canvas, Rect } from '@antv/g-lite';
 import { Renderer } from '@antv/g-canvas';
 
-const WIDTH = 1200;
+const WIDTH = document.body.clientWidth;
 const HEIGHT = 2 * 150;
 
 const SineEffect: Effect = (analyser) => {
