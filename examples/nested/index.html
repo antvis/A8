@@ -1,4 +1,5 @@
-<html>
+<html lang="zh-CN">
+  <meta charset="UTF-8">
   <script type="module" src="./main.ts"></script>
   <style>
     .lil-gui.root {
@@ -177,12 +178,17 @@
       color: antiquewhite;
     }
   </style>
-  <ul class="spinner" id="spinner">
+  <!-- <ul class="spinner" id="spinner">
     <li></li>
     <li></li>
     <li></li>
     <li></li>
-  </ul>
+  </ul> -->
+  <div style="display:flex">
+    <input type="text" id="url" style="flex:1" value="https://api.injahow.cn/meting/?type=url&id=416892104">
+    <button id="submit" >确定</button>
+  </div>
+
   <div id="audio-block">
     <input
       type="file"
@@ -208,8 +214,5 @@
       </div>
     </label>
   </div>
-<div style="position:fixed;right:10;bottom:10">
-  <a href="/nested/" style="color:white">else demo</a>
-</div>
   <div id="container"></div>
 </html>
